@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { initializeApp } from "firebase/app";
-import { getDatabase, ref, onValue, set, update, remove } from "firebase/database";
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/database';
 import { Member, DominionStatus } from './types';
 import { INITIAL_SEASONS, SQUAD_GROUPS, PRESET_MEMBER_NAMES } from './constants';
 import MemberCard from './components/MemberCard';
@@ -20,9 +20,9 @@ const firebaseConfig = {
   appId: "1:1051318463158:web:85a1d5dfaf8aa29dec1417"
 };
 
-// Initialize Firebase
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getDatabase(firebaseApp);
+// Initialize Firebase using Compat API (Essential for avoiding "Service database not available")
+const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
+const db = app.database();
 
 type SortKey = 'group' | 'name' | 'lineName' | string;
 type SortDirection = 'asc' | 'desc';
@@ -45,16 +45,14 @@ const App: React.FC = () => {
     direction: 'asc',
   });
 
-  // Fetch data from Firebase Realtime Database
+  // Fetch data using Compat API style
   useEffect(() => {
-    const membersRef = ref(db, 'members');
-    const unsubscribe = onValue(membersRef, (snapshot) => {
+    const membersRef = db.ref('members');
+    const onValueChange = (snapshot: any) => {
       const data = snapshot.val();
       if (data) {
-        // Convert object of objects to array
         const memberList: Member[] = Object.keys(data).map(key => {
           const m = data[key];
-          // Ensure seasonal history is consistent with INITIAL_SEASONS
           const history = m.seasonalHistory || [];
           const updatedHistory = INITIAL_SEASONS.map(s => {
             const existing = history.find((h: any) => h.season === s);
@@ -64,29 +62,16 @@ const App: React.FC = () => {
         });
         setMembers(memberList);
       } else {
-        // Only seed if database is truly empty
         seedInitialData();
       }
       setIsSyncing(false);
-    });
+    };
 
-    return () => unsubscribe();
+    membersRef.on('value', onValueChange);
+    return () => membersRef.off('value', onValueChange);
   }, []);
 
   const seedInitialData = () => {
-    // Check local storage first to prevent overwriting cloud if it was meant to be populated
-    const saved = localStorage.getItem('dominion_members');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.length > 0) {
-        parsed.forEach((m: Member) => {
-          set(ref(db, `members/${m.id}`), m);
-        });
-        return;
-      }
-    }
-
-    // Default presets
     PRESET_MEMBER_NAMES.forEach(name => {
       const id = crypto.randomUUID();
       const newMember = {
@@ -96,16 +81,9 @@ const App: React.FC = () => {
         lineName: '',
         seasonalHistory: INITIAL_SEASONS.map(s => ({ season: s, status: DominionStatus.EMPTY }))
       };
-      set(ref(db, `members/${id}`), newMember);
+      db.ref(`members/${id}`).set(newMember);
     });
   };
-
-  // Sync back to local storage as a secondary cache
-  useEffect(() => {
-    if (members.length > 0) {
-      localStorage.setItem('dominion_members', JSON.stringify(members));
-    }
-  }, [members]);
 
   const handleSort = (key: SortKey) => {
     setSortConfig(prev => ({
@@ -117,7 +95,7 @@ const App: React.FC = () => {
   const filteredMembers = useMemo(() => {
     let result = members.filter(m => {
       const nameMatch = m.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const lineMatch = m.lineName.toLowerCase().includes(searchQuery.toLowerCase());
+      const lineMatch = (m.lineName || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesSearch = nameMatch || lineMatch;
       const matchesGroup = filterGroup === 'ALL' || m.group === filterGroup;
       return matchesSearch && matchesGroup;
@@ -134,8 +112,8 @@ const App: React.FC = () => {
         valA = a.name;
         valB = b.name;
       } else if (sortConfig.key === 'lineName') {
-        valA = a.lineName;
-        valB = b.lineName;
+        valA = a.lineName || '';
+        valB = b.lineName || '';
       } else {
         valA = a.seasonalHistory.find(s => s.season === sortConfig.key)?.status || '';
         valB = b.seasonalHistory.find(s => s.season === sortConfig.key)?.status || '';
@@ -143,7 +121,6 @@ const App: React.FC = () => {
 
       if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
       if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
-      
       return a.name.localeCompare(b.name);
     });
 
@@ -153,7 +130,7 @@ const App: React.FC = () => {
   const handleAddMember = (memberData: Partial<Member>) => {
     if (authRole !== 'admin') return;
     if (editingMember) {
-      update(ref(db, `members/${editingMember.id}`), memberData);
+      db.ref(`members/${editingMember.id}`).update(memberData);
     } else {
       const id = crypto.randomUUID();
       const newMember: Member = {
@@ -163,7 +140,7 @@ const App: React.FC = () => {
         lineName: memberData.lineName || '',
         seasonalHistory: memberData.seasonalHistory || seasons.map(s => ({ season: s, status: DominionStatus.EMPTY }))
       };
-      set(ref(db, `members/${id}`), newMember);
+      db.ref(`members/${id}`).set(newMember);
     }
     setEditingMember(null);
   };
@@ -172,7 +149,6 @@ const App: React.FC = () => {
     if (authRole !== 'admin') return;
     const member = members.find(m => m.id === memberId);
     if (!member) return;
-
     const history = [...member.seasonalHistory];
     const idx = history.findIndex(s => s.season === season);
     if (idx > -1) {
@@ -180,23 +156,23 @@ const App: React.FC = () => {
     } else {
       history.push({ season, status });
     }
-    update(ref(db, `members/${memberId}`), { seasonalHistory: history });
+    db.ref(`members/${memberId}`).update({ seasonalHistory: history });
   };
 
   const handleUpdateGroup = (memberId: string, group: string) => {
     if (authRole !== 'admin') return;
-    update(ref(db, `members/${memberId}`), { group });
+    db.ref(`members/${memberId}`).update({ group });
   };
 
   const handleUpdateLineName = (memberId: string, lineName: string) => {
     if (authRole !== 'admin') return;
-    update(ref(db, `members/${memberId}`), { lineName });
+    db.ref(`members/${memberId}`).update({ lineName });
   };
 
   const handleDelete = (id: string) => {
     if (authRole !== 'admin') return;
     if (confirm('確定要移除此成員的登錄資訊嗎？')) {
-      remove(ref(db, `members/${id}`));
+      db.ref(`members/${id}`).remove();
     }
   };
 
