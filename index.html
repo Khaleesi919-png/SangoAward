@@ -1,80 +1,84 @@
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dominion Commander - Allied Registry</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-    <style>
-        body {
-            background-color: #020617;
-            font-family: 'JetBrains+Mono', monospace;
-            color: #e2e8f0;
-            overflow-x: hidden;
-        }
-        .font-orbitron {
-            font-family: 'Orbitron', sans-serif;
-        }
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(56, 189, 248, 0.1);
-        }
-        .neon-border {
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
-        }
-        .glow-text {
-            text-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.5);
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(56, 189, 248, 0.2);
-            border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: rgba(56, 189, 248, 0.4);
-        }
-        @keyframes scanline {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100%); }
-        }
-        .scanline {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 2px;
-            background: rgba(56, 189, 248, 0.1);
-            opacity: 0.5;
-            pointer-events: none;
-            animation: scanline 8s linear infinite;
-            z-index: 100;
-        }
-    </style>
-<script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
-    "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
-    "firebase/database": "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js",
-    "firebase/": "https://esm.sh/firebase@^12.7.0/"
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dominion Commander - Allied Registry</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  body {
+    background-color: #020617;
+    font-family: 'JetBrains Mono', monospace;
+    color: #e2e8f0;
+    overflow-x: hidden;
   }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
+  .font-orbitron { font-family: 'Orbitron', sans-serif; }
+  .glass-panel {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(56, 189, 248, 0.1);
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+  .scanline {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 2px;
+    background: rgba(56, 189, 248, 0.1);
+    opacity: 0.5;
+    pointer-events: none;
+    animation: scanline 8s linear infinite;
+    z-index: 100;
+  }
+  @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+</style>
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
-    <div class="scanline"></div>
-    <div id="root"></div>
-    <script type="module" src="index.tsx"></script>
-<script type="module" src="/index.tsx"></script>
+<div class="scanline"></div>
+
+<div class="glass-panel">
+  <h2 class="font-orbitron">多人即時同步測試</h2>
+  <input id="input" placeholder="輸入文字..." class="w-full p-2 rounded bg-gray-900 text-white">
+  <div id="output" class="mt-2 p-2 border border-gray-700 rounded min-h-[20px]"></div>
+</div>
+
+<script>
+  // ✅ 你的 Firebase 設定
+  const firebaseConfig = {
+    apiKey: "AIzaSyDzbKWTZJy0pyQgUkYwUJIrYVXKQL2zdvI",
+    authDomain: "sangoaward.firebaseapp.com",
+    databaseURL: "https://sangoaward-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "sangoaward",
+    storageBucket: "sangoaward.firebasestorage.app",
+    messagingSenderId: "1051318463158",
+    appId: "1:1051318463158:web:85a1d5dfaf8aa29dec1417"
+  };
+
+  // ✅ 初始化 Firebase
+  firebase.initializeApp(firebaseConfig);
+
+  // ✅ 使用 Realtime Database
+  const db = firebase.database();
+  const ref = db.ref("shared/text");
+
+  const input = document.getElementById("input");
+  const output = document.getElementById("output");
+
+  // 使用者輸入 → 寫入 Firebase
+  input.addEventListener("input", () => {
+    ref.set(input.value);
+  });
+
+  // Database 變化 → 即時更新畫面
+  ref.on("value", snapshot => {
+    const value = snapshot.val() || "";
+    input.value = value;
+    output.innerText = value;
+  });
+</script>
 </body>
 </html>
