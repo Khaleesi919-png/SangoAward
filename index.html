@@ -1,95 +1,435 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dominion Commander - Allied Registry</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-    body {
-        background-color: #020617;
-        font-family: 'JetBrains+Mono', monospace;
-        color: #e2e8f0;
-        overflow-x: hidden;
-    }
-    .font-orbitron { font-family: 'Orbitron', sans-serif; }
-    .glass-panel {
-        background: rgba(15, 23, 42, 0.8);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(56, 189, 248, 0.1);
-    }
-    .neon-border {
-        box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
-    }
-    .glow-text {
-        text-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
-    }
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.2); border-radius: 10px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.4); }
-    @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
-    .scanline {
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 2px;
-        background: rgba(56, 189, 248, 0.1);
-        opacity: 0.5;
-        pointer-events: none;
-        animation: scanline 8s linear infinite;
-        z-index: 100;
-    }
-</style>
-
-<!-- Firebase compat SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dominion Commander - Allied Registry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #020617;
+            --accent-cyan: #22d3ee;
+            --panel-bg: rgba(15, 23, 42, 0.85);
+        }
+        body {
+            background-color: var(--bg-deep);
+            font-family: 'JetBrains+Mono', monospace;
+            color: #e2e8f0;
+            overflow-x: hidden;
+            margin: 0;
+        }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(56, 189, 248, 0.15);
+        }
+        .neon-border { box-shadow: 0 0 15px rgba(56, 189, 248, 0.2); }
+        .glow-text { text-shadow: 0 0 8px rgba(56, 189, 248, 0.5); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.2);
+            border-radius: 10px;
+        }
+        @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+        .scanline {
+            position: fixed; top: 0; left: 0; width: 100%; height: 2px;
+            background: rgba(56, 189, 248, 0.05);
+            opacity: 0.3; pointer-events: none;
+            animation: scanline 10s linear infinite;
+            z-index: 100;
+        }
+        .hidden { display: none !important; }
+        .status-select { appearance: none; text-align: center; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "firebase/": "https://esm.sh/firebase@^12.7.0/"
+  }
+}
+</script>
 </head>
 <body>
-<div class="scanline"></div>
+    <div class="scanline"></div>
 
-<!-- 這裡放你原本的內容 -->
-<div class="glass-panel">
-    <h2 class="font-orbitron">Dominion Commander - Allied Registry</h2>
-    <input id="input" placeholder="輸入文字..." class="w-full p-2 rounded bg-gray-900 text-white">
-    <div id="output" class="mt-2 p-2 border border-gray-700 rounded min-h-[20px]"></div>
-</div>
+    <div id="app" class="min-h-screen">
+        <!-- Login Section -->
+        <div id="login-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#020617] p-4">
+            <div class="absolute inset-0 pointer-events-none opacity-20">
+                <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500 rounded-full blur-[150px] animate-pulse"></div>
+                <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600 rounded-full blur-[150px] animate-pulse"></div>
+            </div>
+            <div class="glass-panel w-full max-w-md rounded-2xl p-8 border-cyan-500/20 shadow-[0_0_50px_rgba(6,182,212,0.15)] relative">
+                <div class="text-center mb-10">
+                    <div class="w-16 h-16 bg-cyan-600 rounded-xl mx-auto mb-4 flex items-center justify-center neon-border">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    </div>
+                    <h1 class="text-3xl font-orbitron font-bold text-white glow-text uppercase tracking-tighter">Security Terminal</h1>
+                    <p class="text-[10px] text-cyan-400 mt-2 uppercase tracking-[0.3em] font-bold">霸業指揮中心存取</p>
+                </div>
+                <div id="login-choices" class="space-y-4">
+                    <button id="btn-visitor" class="w-full py-4 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-3">
+                        訪客登入 (唯讀)
+                    </button>
+                    <div class="flex items-center gap-4 py-2">
+                        <div class="h-px bg-slate-800 flex-1"></div>
+                        <span class="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Or</span>
+                        <div class="h-px bg-slate-800 flex-1"></div>
+                    </div>
+                    <button id="btn-admin-prompt" class="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-bold shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all">
+                        管理權限登入
+                    </button>
+                </div>
+                <form id="admin-form" class="space-y-6 hidden">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Access ID</label>
+                        <input id="admin-user" type="text" class="w-full bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-white outline-none focus:border-cyan-500/50" placeholder="Username">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Secret Key</label>
+                        <input id="admin-pass" type="password" class="w-full bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-white outline-none focus:border-cyan-500/50" placeholder="••••••••">
+                    </div>
+                    <div id="login-error" class="text-rose-500 text-[10px] font-bold text-center uppercase hidden">驗證失敗</div>
+                    <div class="flex gap-4">
+                        <button type="button" id="btn-back" class="flex-1 py-3 text-sm font-bold text-slate-500 hover:text-white">返回</button>
+                        <button type="submit" class="flex-[2] py-3 bg-cyan-600 text-white rounded-xl font-bold uppercase tracking-widest">驗證</button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
-<script>
-  // ✅ Firebase 設定
-  const firebaseConfig = {
-    apiKey: "AIzaSyDzbKWTZJy0pyQgUkYwUJIrYVXKQL2zdvI",
-    authDomain: "sangoaward.firebaseapp.com",
-    databaseURL: "https://sangoaward-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "sangoaward",
-    storageBucket: "sangoaward.firebasestorage.app",
-    messagingSenderId: "1051318463158",
-    appId: "1:1051318463158:web:85a1d5dfaf8aa29dec1417"
-  };
+        <!-- Main Content -->
+        <div id="main-app" class="hidden min-h-screen">
+            <header class="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-cyan-500/20 px-4 py-3">
+                <div class="max-w-[1800px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded bg-cyan-600 flex items-center justify-center neon-border">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-orbitron font-bold text-white glow-text uppercase tracking-tighter">DOMINION CMDR</h1>
+                            <div class="flex items-center gap-2">
+                                <span id="display-role" class="text-[8px] px-1.5 py-0.5 rounded border border-slate-500 text-slate-500 font-bold uppercase">VISITOR</span>
+                                <span id="sync-status" class="text-[7px] text-cyan-500 animate-pulse font-bold tracking-widest">SYNCING...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-4">
+                        <input id="search-input" type="text" placeholder="搜索成員..." class="bg-slate-900/80 border border-slate-700 rounded-full px-4 py-1.5 text-xs w-40 focus:w-56 focus:border-cyan-500 outline-none transition-all text-white">
+                        <select id="group-filter" class="bg-slate-900/80 border border-slate-700 rounded-full px-3 py-1.5 text-xs text-slate-300 outline-none">
+                            <option value="ALL">全部組別</option>
+                        </select>
+                        <button id="btn-add-member" class="hidden bg-cyan-600 hover:bg-cyan-500 text-white rounded-full px-4 py-1.5 text-xs font-bold neon-border transition-all flex items-center gap-2">
+                            新增成員
+                        </button>
+                        <button id="btn-logout" class="text-slate-500 hover:text-white p-1">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </header>
 
-  // 初始化 Firebase
-  firebase.initializeApp(firebaseConfig);
+            <main class="max-w-[1800px] mx-auto px-4 mt-6">
+                <div class="overflow-x-auto custom-scrollbar pb-20">
+                    <div id="member-table" class="min-w-[1200px] flex flex-col gap-1">
+                        <!-- Table Header -->
+                        <div class="px-4 py-4 flex items-center text-xs font-bold text-slate-500 uppercase tracking-widest border-b border-slate-800 bg-slate-950/60 sticky top-0 z-10">
+                            <div class="w-10 shrink-0 text-center">#</div>
+                            <div id="sort-group" class="w-48 shrink-0 flex items-center gap-2 cursor-pointer hover:text-cyan-400">組別 / 成員</div>
+                            <div id="sort-line" class="w-28 shrink-0 px-3 flex items-center gap-2 cursor-pointer hover:text-cyan-400">LINE 名稱</div>
+                            <div id="season-headers" class="flex-1 flex gap-2 ml-4"></div>
+                            <div id="admin-actions-header" class="w-20 shrink-0 ml-4 hidden"></div>
+                        </div>
+                        <div id="member-list-container" class="space-y-1 mt-1"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
 
-  // 取得 Realtime Database
-  const db = firebase.database();
-  const ref = db.ref("shared/text");
+    <!-- Member Modal -->
+    <div id="member-modal" class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md hidden">
+        <div class="glass-panel w-full max-w-lg rounded-xl p-8 border-cyan-500/20 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+            <h2 id="modal-title" class="text-2xl font-orbitron font-bold text-cyan-400 mb-8 flex items-center gap-3">成員登錄</h2>
+            <form id="member-form" class="space-y-6">
+                <input type="hidden" id="edit-id">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">成員名稱</label>
+                        <input id="form-name" required type="text" class="w-full bg-slate-900 border border-slate-800 rounded p-3 text-white outline-none focus:border-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">組別</label>
+                        <select id="form-group" class="w-full bg-slate-900 border border-slate-800 rounded p-3 text-white outline-none focus:border-cyan-500"></select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">LINE 顯示名稱</label>
+                    <input id="form-line" type="text" class="w-full bg-slate-900 border border-slate-800 rounded p-3 text-white outline-none focus:border-cyan-500">
+                </div>
+                <div class="flex gap-4 pt-4">
+                    <button type="button" id="btn-modal-close" class="flex-1 py-3 text-sm font-bold text-slate-400 hover:text-white uppercase">取消</button>
+                    <button type="submit" class="flex-[2] py-3 bg-cyan-600 text-white font-bold rounded shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:bg-cyan-500 transition-all uppercase">確認</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-  const input = document.getElementById("input");
-  const output = document.getElementById("output");
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-  // 使用者輸入 → 寫入 Firebase
-  input.addEventListener("input", () => {
-    ref.set(input.value);
-  });
+        // Constants
+        const SEASONS = ['S20', 'S21', 'S22', 'S23', 'S24', 'S25', 'S26'];
+        const GROUPS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
+        const STATUS_OPTIONS = ['空白', '當季霸業', '已領過', '霸業前五保障', '領過(無保障)', '當季離隊', '已離隊'];
+        const STATUS_COLORS = {
+            '空白': 'bg-slate-800/20 text-slate-500 border-slate-800',
+            '當季霸業': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50 font-bold glow-text',
+            '已領過': 'bg-green-500/20 text-green-400 border-green-500/50',
+            '霸業前五保障': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50 animate-pulse font-bold',
+            '領過(無保障)': 'bg-amber-500/20 text-amber-400 border-amber-500/50',
+            '當季離隊': 'bg-rose-500/20 text-rose-400 border-rose-500/50 line-through',
+            '已離隊': 'bg-slate-700/40 text-slate-400 border-slate-600 italic'
+        };
 
-  // Firebase 變化 → 更新畫面
-  ref.on("value", snapshot => {
-    const value = snapshot.val() || "";
-    input.value = value;
-    output.innerText = value;
-  });
-</script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDzbKWTZJy0pyQgUkYwUJIrYVXKQL2zdvI",
+            authDomain: "sangoaward.firebaseapp.com",
+            databaseURL: "https://sangoaward-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "sangoaward",
+            storageBucket: "sangoaward.firebasestorage.app",
+            messagingSenderId: "1051318463158",
+            appId: "1:1051318463158:web:85a1d5dfaf8aa29dec1417"
+        };
 
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // State
+        let members = [];
+        let currentRole = null;
+        let searchQuery = '';
+        let filterGroup = 'ALL';
+        let sortKey = 'group';
+        let sortDir = 'asc';
+
+        // DOM Elements
+        const loginScreen = document.getElementById('login-screen');
+        const loginChoices = document.getElementById('login-choices');
+        const adminForm = document.getElementById('admin-form');
+        const mainApp = document.getElementById('main-app');
+        const displayRole = document.getElementById('display-role');
+        const syncStatus = document.getElementById('sync-status');
+        const memberListContainer = document.getElementById('member-list-container');
+        const seasonHeaders = document.getElementById('season-headers');
+        const groupFilter = document.getElementById('group-filter');
+        const btnAddMember = document.getElementById('btn-add-member');
+        const memberModal = document.getElementById('member-modal');
+        const formGroup = document.getElementById('form-group');
+
+        // Init UI
+        GROUPS.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g; opt.textContent = `${g} 組`;
+            groupFilter.appendChild(opt);
+            const opt2 = opt.cloneNode(true);
+            formGroup.appendChild(opt2);
+        });
+
+        SEASONS.forEach(s => {
+            const div = document.createElement('div');
+            div.className = "flex-1 flex flex-col items-center gap-1 group/season";
+            div.innerHTML = `
+                <div class="w-full text-center text-cyan-500 hover:text-cyan-300 text-xl font-orbitron cursor-pointer transition-colors">
+                    ${s}
+                </div>
+                <div id="stats-${s}" class="text-[10px] text-yellow-500/80 font-bold bg-yellow-900/20 px-2 py-0.5 rounded-full border border-yellow-700/30">霸業: 0</div>
+            `;
+            div.onclick = () => handleSort(s);
+            seasonHeaders.appendChild(div);
+        });
+
+        // Event Listeners for Login
+        document.getElementById('btn-visitor').addEventListener('click', () => doLogin('visitor'));
+        document.getElementById('btn-admin-prompt').addEventListener('click', () => {
+            loginChoices.classList.add('hidden');
+            adminForm.classList.remove('hidden');
+        });
+        document.getElementById('btn-back').addEventListener('click', () => {
+            loginChoices.classList.remove('hidden');
+            adminForm.classList.add('hidden');
+        });
+        document.getElementById('admin-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const user = document.getElementById('admin-user').value;
+            const pass = document.getElementById('admin-pass').value;
+            if (user === 'Q' && pass === '0919') {
+                doLogin('admin');
+            } else {
+                const err = document.getElementById('login-error');
+                err.classList.remove('hidden');
+                setTimeout(() => err.classList.add('hidden'), 3000);
+            }
+        });
+
+        function doLogin(role) {
+            currentRole = role;
+            loginScreen.classList.add('hidden');
+            mainApp.classList.remove('hidden');
+            displayRole.textContent = role.toUpperCase();
+            displayRole.className = `text-[8px] px-1.5 py-0.5 rounded border font-bold uppercase ${role === 'admin' ? 'border-amber-500 text-amber-500' : 'border-slate-500 text-slate-500'}`;
+            if (role === 'admin') {
+                btnAddMember.classList.remove('hidden');
+                document.getElementById('admin-actions-header').classList.remove('hidden');
+            }
+            render();
+        }
+
+        document.getElementById('btn-logout').onclick = () => location.reload();
+
+        // Search & Filter
+        document.getElementById('search-input').oninput = (e) => { searchQuery = e.target.value; render(); };
+        document.getElementById('group-filter').onchange = (e) => { filterGroup = e.target.value; render(); };
+        document.getElementById('sort-group').onclick = () => handleSort('group');
+        document.getElementById('sort-line').onclick = () => handleSort('lineName');
+
+        function handleSort(key) {
+            if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+            else { sortKey = key; sortDir = 'asc'; }
+            render();
+        }
+
+        // Member Data Actions
+        document.getElementById('btn-add-member').onclick = () => {
+            document.getElementById('modal-title').textContent = '新進成員登錄';
+            document.getElementById('edit-id').value = '';
+            document.getElementById('member-form').reset();
+            memberModal.classList.remove('hidden');
+        };
+
+        document.getElementById('btn-modal-close').onclick = () => memberModal.classList.add('hidden');
+
+        document.getElementById('member-form').onsubmit = (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value || crypto.randomUUID();
+            const name = document.getElementById('form-name').value;
+            const group = document.getElementById('form-group').value;
+            const line = document.getElementById('form-line').value;
+            
+            const existing = members.find(m => m.id === id);
+            const history = existing ? existing.seasonalHistory : SEASONS.map(s => ({ season: s, status: '空白' }));
+
+            set(ref(db, `members/${id}`), { id, name, group, lineName: line, seasonalHistory: history });
+            memberModal.classList.add('hidden');
+        };
+
+        // Firebase Sync
+        onValue(ref(db, 'members'), (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                members = Object.values(data).map(m => ({
+                    ...m,
+                    seasonalHistory: m.seasonalHistory || SEASONS.map(s => ({ season: s, status: '空白' }))
+                }));
+            }
+            syncStatus.classList.add('hidden');
+            render();
+        });
+
+        function render() {
+            if (!currentRole) return;
+
+            // Stats Update
+            SEASONS.forEach(s => {
+                const count = members.filter(m => m.seasonalHistory.find(h => h.season === s)?.status === '當季霸業').length;
+                document.getElementById(`stats-${s}`).textContent = `霸業: ${count}`;
+            });
+
+            const filtered = members.filter(m => {
+                const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                     m.lineName.toLowerCase().includes(searchQuery.toLowerCase());
+                const matchesGroup = filterGroup === 'ALL' || m.group === filterGroup;
+                return matchesSearch && matchesGroup;
+            }).sort((a, b) => {
+                let valA, valB;
+                if (SEASONS.includes(sortKey)) {
+                    valA = a.seasonalHistory.find(h => h.season === sortKey)?.status || '';
+                    valB = b.seasonalHistory.find(h => h.season === sortKey)?.status || '';
+                } else {
+                    valA = a[sortKey]; valB = b[sortKey];
+                }
+                if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+                if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+                return a.name.localeCompare(b.name);
+            });
+
+            memberListContainer.innerHTML = '';
+            filtered.forEach((m, idx) => {
+                const row = document.createElement('div');
+                row.className = `glass-panel px-4 py-2 rounded border-l-2 transition-all flex items-center group min-w-[1200px] ${currentRole === 'admin' ? 'border-cyan-500/50 hover:bg-slate-800/40' : 'border-slate-800/50 bg-slate-900/20'}`;
+                
+                let seasonSelects = '';
+                SEASONS.forEach(s => {
+                    const currentStatus = m.seasonalHistory.find(h => h.season === s)?.status || '空白';
+                    seasonSelects += `
+                        <div class="flex-1 min-w-[110px]">
+                            <select ${currentRole !== 'admin' ? 'disabled' : ''} onchange="updateMemberStatus('${m.id}', '${s}', this.value)" class="w-full text-[10px] p-1.5 rounded border appearance-none text-center focus:outline-none transition-all ${STATUS_COLORS[currentStatus]}">
+                                ${STATUS_OPTIONS.map(opt => `<option value="${opt}" ${opt === currentStatus ? 'selected' : ''} class="bg-slate-950 text-slate-200">${opt}</option>`).join('')}
+                            </select>
+                        </div>
+                    `;
+                });
+
+                row.innerHTML = `
+                    <div class="w-10 shrink-0 text-[10px] font-mono text-slate-500 text-center">${String(idx + 1).padStart(2, '0')}</div>
+                    <div class="w-48 shrink-0 flex items-center gap-3">
+                        <select ${currentRole !== 'admin' ? 'disabled' : ''} onchange="updateMemberGroup('${m.id}', this.value)" class="text-sm w-9 h-9 rounded bg-slate-900 text-cyan-400 border border-slate-700 font-bold appearance-none text-center">
+                            ${GROUPS.map(g => `<option value="${g}" ${g === m.group ? 'selected' : ''}>${g}</option>`).join('')}
+                        </select>
+                        <h3 class="text-sm font-bold text-white truncate flex-1">${m.name}</h3>
+                    </div>
+                    <div class="w-28 shrink-0 px-3 border-x border-slate-800/30">
+                        <input ${currentRole !== 'admin' ? 'readonly' : ''} type="text" value="${m.lineName}" onchange="updateMemberLine('${m.id}', this.value)" placeholder="LINE ID" class="bg-transparent border-none text-[11px] text-slate-400 w-full outline-none focus:text-white">
+                    </div>
+                    <div class="flex-1 flex gap-2 ml-4">${seasonSelects}</div>
+                    ${currentRole === 'admin' ? `
+                        <div class="w-20 shrink-0 flex justify-end gap-1 opacity-20 group-hover:opacity-100 transition-opacity ml-4">
+                            <button onclick="editMember('${m.id}')" class="p-1.5 rounded hover:bg-cyan-900/40 text-cyan-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>
+                            <button onclick="deleteMember('${m.id}')" class="p-1.5 rounded hover:bg-rose-900/40 text-rose-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                        </div>
+                    ` : ''}
+                `;
+                memberListContainer.appendChild(row);
+            });
+        }
+
+        // Global functions for inline events
+        window.updateMemberStatus = (id, season, status) => {
+            const m = members.find(m => m.id === id);
+            const history = m.seasonalHistory.map(h => h.season === season ? { ...h, status } : h);
+            update(ref(db, `members/${id}`), { seasonalHistory: history });
+        };
+        window.updateMemberGroup = (id, group) => update(ref(db, `members/${id}`), { group });
+        window.updateMemberLine = (id, line) => update(ref(db, `members/${id}`), { lineName: line });
+        window.deleteMember = (id) => { if (confirm('確定移除？')) remove(ref(db, `members/${id}`)); };
+        window.editMember = (id) => {
+            const m = members.find(m => m.id === id);
+            document.getElementById('modal-title').textContent = '修正登錄資料';
+            document.getElementById('edit-id').value = m.id;
+            document.getElementById('form-name').value = m.name;
+            document.getElementById('form-group').value = m.group;
+            document.getElementById('form-line').value = m.lineName;
+            memberModal.classList.remove('hidden');
+        };
+
+    </script>
 </body>
 </html>
