@@ -350,7 +350,7 @@
             // Stats Update
             SEASONS.forEach(s => {
                 const count = members.filter(m => m.seasonalHistory.find(h => h.season === s)?.status === '當季霸業').length;
-                document.getElementById(`stats-${s}`).textContent = `保障/霸業: ${count}`;
+                document.getElementById(`stats-${s}`).textContent = `霸業: ${count}`;
             });
 
             const filtered = members.filter(m => {
