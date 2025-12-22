@@ -192,7 +192,7 @@
         const STATUS_COLORS = {
             '空白': 'bg-slate-800/20 text-slate-500 border-slate-800',
             '當季霸業': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50 font-bold glow-text',
-            '已領過': 'bg-green-500/20 text-green-400 border-green-500/50',
+            '官員保障': 'bg-green-500/20 text-green-400 border-green-500/50',
             '霸業前五保障': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50 animate-pulse font-bold',
             '領過(無保障)': 'bg-amber-500/20 text-amber-400 border-amber-500/50',
             '當季離隊': 'bg-rose-500/20 text-rose-400 border-rose-500/50 line-through',
@@ -251,7 +251,7 @@
                 <div class="w-full text-center text-cyan-500 hover:text-cyan-300 text-xl font-orbitron cursor-pointer transition-colors">
                     ${s}
                 </div>
-                <div id="stats-${s}" class="text-[10px] text-yellow-500/80 font-bold bg-yellow-900/20 px-2 py-0.5 rounded-full border border-yellow-700/30">霸業: 0</div>
+                <div id="stats-${s}" class="text-[8px] text-yellow-500/80 font-bold bg-yellow-900/20 px-2 py-0.5 rounded-full border border-yellow-700/30">霸業: 0</div>
             `;
             div.onclick = () => handleSort(s);
             seasonHeaders.appendChild(div);
