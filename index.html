@@ -186,13 +186,13 @@
         import { getDatabase, ref, onValue, set, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         // Constants
-        const SEASONS = ['PK18奇門', 'PK19亂世', 'PK20長安', 'PK21兗州', 'PK22定軍', 'S25', 'S26'];
+        const SEASONS = ['S20', 'S21', 'S22', 'S23', 'S24', 'S25', 'S26'];
         const GROUPS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
-        const STATUS_OPTIONS = ['空白', '當季霸業', '官員保障', '霸業前五保障', '領過(無保障)', '當季離隊', '已離隊'];
+        const STATUS_OPTIONS = ['空白', '當季霸業', '已領過', '霸業前五保障', '領過(無保障)', '當季離隊', '已離隊'];
         const STATUS_COLORS = {
             '空白': 'bg-slate-800/20 text-slate-500 border-slate-800',
             '當季霸業': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50 font-bold glow-text',
-            '官員保障': 'bg-green-500/20 text-green-400 border-green-500/50',
+            '已領過': 'bg-green-500/20 text-green-400 border-green-500/50',
             '霸業前五保障': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50 animate-pulse font-bold',
             '領過(無保障)': 'bg-amber-500/20 text-amber-400 border-amber-500/50',
             '當季離隊': 'bg-rose-500/20 text-rose-400 border-rose-500/50 line-through',
